@@ -4,8 +4,10 @@
 name: .NET
 
 on:
+push: [ "main" ]
+brances:
   pull_request:
-    branches: [ "develop" ]
+    branches: [ "main" ]
 
 jobs:
   build:
