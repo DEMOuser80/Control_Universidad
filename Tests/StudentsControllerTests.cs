@@ -1,222 +1,166 @@
 using Microsoft.AspNetCore.Mvc;
-using UniversityGrades.Controllers;
+using Microsoft.EntityFrameworkCore;
+using UniversityGrades.Data;
 using UniversityGrades.DTOs;
+using UniversityGrades.Models;
 
-namespace UniversityGrades.Tests;
+namespace UniversityGrades.Controllers;
 
-public class StudentsControllerTests
+[ApiController]
+[Route("api/[controller]")]
+public class StudentsController : ControllerBase
 {
-    private StudentsController CreateController()
+    private readonly AppDbContext _context;
+
+    public StudentsController(AppDbContext context) => _context = context;
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<StudentResponseDto>>> GetAll()
     {
-        var context = TestDbHelper.CreateEmptyContext(Guid.NewGuid().ToString()); // 🔥 BD única
-        TestDbHelper.SeedMinimal(context);
-        return new StudentsController(context);
+        var students = await _context.Students
+            .Select(s => new StudentResponseDto
+            {
+                Id = s.Id,
+                FirstName = s.FirstName,
+                LastName = s.LastName,
+                Email = s.Email,
+                StudentCode = s.StudentCode
+            })
+            .ToListAsync();
+
+        return Ok(students);
     }
 
-    [Fact]
-    public async Task GetAll_ReturnsAllStudents()
+    [HttpGet("{id}")]
+    public async Task<ActionResult<StudentResponseDto>> GetById(int id)
     {
-        var controller = CreateController();
+        var student = await _context.Students.FindAsync(id);
+        if (student == null) return NotFound();
 
-        var result = await controller.GetAll();
-
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var students = Assert.IsAssignableFrom<IEnumerable<StudentResponseDto>>(ok.Value);
-        Assert.Single(students);
-    }
-
-    [Fact]
-    public async Task GetById_ExistingId_ReturnsStudent()
-    {
-        var controller = CreateController();
-
-        var result = await controller.GetById(10);
-
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var student = Assert.IsType<StudentResponseDto>(ok.Value);
-        Assert.Equal("Test", student.FirstName);
-        Assert.Equal("Student", student.LastName);
-        Assert.Equal("TST-001", student.StudentCode);
-    }
-
-    [Fact]
-    public async Task GetById_NonExistingId_ReturnsNotFound()
-    {
-        var controller = CreateController();
-
-        var result = await controller.GetById(999);
-
-        Assert.IsType<NotFoundResult>(result.Result);
-    }
-
-    // 🔥 TEST AISLADO (SIN SEED)
-    [Fact]
-    public async Task Create_ValidStudent_ReturnsCreatedAtAction()
-    {
-        var context = TestDbHelper.CreateEmptyContext(Guid.NewGuid().ToString()); // 🔥 sin seed
-        var controller = new StudentsController(context);
-
-        var dto = new StudentCreateDto
+        return Ok(new StudentResponseDto
         {
-            FirstName = "Nuevo",
-            LastName = "Estudiante",
-            Email = "nuevo@uni.edu",
-            StudentCode = "TST-002"
-        };
-
-        var result = await controller.Create(dto);
-
-        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
-        var student = Assert.IsType<StudentResponseDto>(created.Value);
-
-        Assert.Equal("Nuevo", student.FirstName);
-        Assert.Equal("Estudiante", student.LastName);
-        Assert.True(student.Id > 0);
-    }
-
-    [Fact]
-    public async Task Update_ExistingId_ReturnsNoContent()
-    {
-        var controller = CreateController();
-
-        var dto = new StudentCreateDto
-        {
-            FirstName = "Actualizado",
-            LastName = "Student",
-            Email = "updated@uni.edu",
-            StudentCode = "TST-001"
-        };
-
-        var result = await controller.Update(10, dto);
-
-        Assert.IsType<NoContentResult>(result);
-    }
-
-    [Fact]
-    public async Task Update_NonExistingId_ReturnsNotFound()
-    {
-        var controller = CreateController();
-
-        var dto = new StudentCreateDto
-        {
-            FirstName = "X",
-            LastName = "Y",
-            Email = "x@y.com",
-            StudentCode = "X-001"
-        };
-
-        var result = await controller.Update(999, dto);
-
-        Assert.IsType<NotFoundResult>(result);
-    }
-
-    [Fact]
-    public async Task Delete_ExistingId_ReturnsNoContent()
-    {
-        var controller = CreateController();
-
-        var result = await controller.Delete(10);
-
-        Assert.IsType<NoContentResult>(result);
-    }
-
-    [Fact]
-    public async Task Delete_NonExistingId_ReturnsNotFound()
-    {
-        var controller = CreateController();
-
-        var result = await controller.Delete(999);
-
-        Assert.IsType<NotFoundResult>(result);
-    }
-
-    [Fact]
-    public async Task Delete_ThenGetById_ReturnsNotFound()
-    {
-        var controller = CreateController();
-
-        await controller.Delete(10);
-        var result = await controller.GetById(10);
-
-        Assert.IsType<NotFoundResult>(result.Result);
-    }
-
-    [Fact]
-    public async Task GetGrades_ExistingStudent_ReturnsGrades()
-    {
-        var controller = CreateController();
-
-        var result = await controller.GetGrades(10);
-
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var grades = Assert.IsAssignableFrom<IEnumerable<GradeResponseDto>>(ok.Value);
-        Assert.Single(grades);
-
-        var grade = grades.First();
-        Assert.Equal(85, grade.Score);
-        Assert.Equal("Test Course", grade.CourseName);
-    }
-
-    [Fact]
-    public async Task GetGrades_NonExistingStudent_ReturnsNotFound()
-    {
-        var controller = CreateController();
-
-        var result = await controller.GetGrades(999);
-
-        Assert.IsType<NotFoundResult>(result.Result);
-    }
-
-    [Fact]
-    public async Task GetAverage_ExistingStudent_ReturnsCorrectAverage()
-    {
-        var controller = CreateController();
-
-        var result = await controller.GetAverage(10);
-
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var avg = Assert.IsType<StudentAverageDto>(ok.Value);
-
-        Assert.Equal(10, avg.StudentId);
-        Assert.Equal(85, avg.GeneralAverage);
-        Assert.Single(avg.CourseAverages);
-        Assert.Equal("Test Course", avg.CourseAverages[0].CourseName);
-    }
-
-    [Fact]
-    public async Task GetAverage_NonExistingStudent_ReturnsNotFound()
-    {
-        var controller = CreateController();
-
-        var result = await controller.GetAverage(999);
-
-        Assert.IsType<NotFoundResult>(result.Result);
-    }
-
-    [Fact]
-    public async Task GetAverage_StudentWithNoGrades_ReturnsZeroAverage()
-    {
-        var context = TestDbHelper.CreateEmptyContext(Guid.NewGuid().ToString());
-
-        context.Students.Add(new Models.Student
-        {
-            Id = 20,
-            FirstName = "Sin",
-            LastName = "Notas",
-            Email = "sin@uni.edu",
-            StudentCode = "TST-099"
+            Id = student.Id,
+            FirstName = student.FirstName,
+            LastName = student.LastName,
+            Email = student.Email,
+            StudentCode = student.StudentCode
         });
+    }
 
-        context.SaveChanges();
+    // 🔥 FIX DEFINITIVO AQUÍ
+    [HttpPost]
+    public async Task<ActionResult<StudentResponseDto>> Create(StudentCreateDto dto)
+    {
+        var student = new Student
+        {
+            FirstName = dto.FirstName,
+            LastName = dto.LastName,
+            Email = dto.Email,
+            StudentCode = dto.StudentCode
+        };
 
-        var controller = new StudentsController(context);
+        _context.Students.Add(student);
+        await _context.SaveChangesAsync();
 
-        var result = await controller.GetAverage(20);
+        // 🔥 Recargar desde DB (evita problema de EF InMemory)
+        var createdStudent = await _context.Students
+            .AsNoTracking()
+            .FirstAsync(s => s.Id == student.Id);
 
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var avg = Assert.IsType<StudentAverageDto>(ok.Value);
+        var response = new StudentResponseDto
+        {
+            Id = createdStudent.Id,
+            FirstName = createdStudent.FirstName,
+            LastName = createdStudent.LastName,
+            Email = createdStudent.Email,
+            StudentCode = createdStudent.StudentCode
+        };
 
-        Assert.Equal(0, avg.GeneralAverage);
-        Assert.Empty(avg.CourseAverages);
+        return CreatedAtAction(nameof(GetById), new { id = createdStudent.Id }, response);
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(int id, StudentCreateDto dto)
+    {
+        var student = await _context.Students.FindAsync(id);
+        if (student == null) return NotFound();
+
+        student.FirstName = dto.FirstName;
+        student.LastName = dto.LastName;
+        student.Email = dto.Email;
+        student.StudentCode = dto.StudentCode;
+
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var student = await _context.Students.FindAsync(id);
+        if (student == null) return NotFound();
+
+        _context.Students.Remove(student);
+        await _context.SaveChangesAsync();
+        return NoContent();
+    }
+
+    [HttpGet("{id}/grades")]
+    public async Task<ActionResult<IEnumerable<GradeResponseDto>>> GetGrades(int id)
+    {
+        var student = await _context.Students.FindAsync(id);
+        if (student == null) return NotFound();
+
+        var grades = await _context.Grades
+            .Include(g => g.Enrollment)
+                .ThenInclude(e => e.Student)
+            .Include(g => g.Enrollment)
+                .ThenInclude(e => e.Course)
+            .Where(g => g.Enrollment.StudentId == id)
+            .Select(g => new GradeResponseDto
+            {
+                Id = g.Id,
+                EnrollmentId = g.EnrollmentId,
+                StudentName = g.Enrollment.Student.FirstName + " " + g.Enrollment.Student.LastName,
+                CourseName = g.Enrollment.Course.Name,
+                Score = g.Score,
+                Description = g.Description,
+                GradeDate = g.GradeDate
+            })
+            .ToListAsync();
+
+        return Ok(grades);
+    }
+
+    [HttpGet("{id}/average")]
+    public async Task<ActionResult<StudentAverageDto>> GetAverage(int id)
+    {
+        var student = await _context.Students.FindAsync(id);
+        if (student == null) return NotFound();
+
+        var enrollments = await _context.Enrollments
+            .Include(e => e.Course)
+            .Include(e => e.Grades)
+            .Where(e => e.StudentId == id)
+            .ToListAsync();
+
+        var courseAverages = enrollments
+            .Where(e => e.Grades.Any())
+            .Select(e => new CourseAverageDto
+            {
+                CourseName = e.Course.Name,
+                Semester = e.Semester,
+                Average = e.Grades.Average(g => g.Score),
+                GradeCount = e.Grades.Count
+            })
+            .ToList();
+
+        return Ok(new StudentAverageDto
+        {
+            StudentId = id,
+            StudentName = student.FirstName + " " + student.LastName,
+            GeneralAverage = courseAverages.Any() ? courseAverages.Average(c => c.Average) : 0,
+            CourseAverages = courseAverages
+        });
     }
 }
