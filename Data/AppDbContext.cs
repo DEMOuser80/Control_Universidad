@@ -5,7 +5,13 @@ namespace UniversityGrades.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly bool _useSeed;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, bool useSeed = true)
+        : base(options)
+    {
+        _useSeed = useSeed;
+    }
 
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Professor> Professors => Set<Professor>();
@@ -19,7 +25,9 @@ public class AppDbContext : DbContext
             .HasIndex(e => new { e.StudentId, e.CourseId, e.Semester })
             .IsUnique();
 
-        // Seed data
+        // 🔥 SOLO SI NO ES TEST
+        if (!_useSeed) return;
+
         modelBuilder.Entity<Professor>().HasData(
             new Professor { Id = 1, FirstName = "Carlos", LastName = "García", Email = "cgarcia@universidad.edu", Department = "Ingeniería" },
             new Professor { Id = 2, FirstName = "María", LastName = "López", Email = "mlopez@universidad.edu", Department = "Ciencias" }
