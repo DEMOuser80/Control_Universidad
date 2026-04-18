@@ -6,20 +6,22 @@ namespace UniversityGrades.Tests;
 
 public static class TestDbHelper
 {
-    public static AppDbContext CreateContext()
+    // ✔ Compatible con tests que pasan parámetro
+    public static AppDbContext CreateContext(string? dbName = null)
     {
-        return CreateBaseContext(true);
+        return CreateBaseContext(withSeed: true);
     }
 
-    public static AppDbContext CreateEmptyContext()
+    // ✔ Compatible con tests que pasan parámetro
+    public static AppDbContext CreateEmptyContext(string? dbName = null)
     {
-        return CreateBaseContext(false);
+        return CreateBaseContext(withSeed: false);
     }
 
     private static AppDbContext CreateBaseContext(bool withSeed)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // 🔥 AISLAMIENTO TOTAL
+            .UseInMemoryDatabase(Guid.NewGuid().ToString()) // 🔥 DB única SIEMPRE
             .Options;
 
         var context = new AppDbContext(options);
