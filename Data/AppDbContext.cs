@@ -7,7 +7,7 @@ public class AppDbContext : DbContext
 {
     private readonly bool _useSeed;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, bool useSeed = true)
+    public AppDbContext(DbContextOptions<AppDbContext> options, bool useSeed = true) 
         : base(options)
     {
         _useSeed = useSeed;
@@ -25,7 +25,7 @@ public class AppDbContext : DbContext
             .HasIndex(e => new { e.StudentId, e.CourseId, e.Semester })
             .IsUnique();
 
-        // 🔥 SOLO SI NO ES TEST
+        // 🚨 SOLO aplicar seed si está habilitado
         if (!_useSeed) return;
 
         modelBuilder.Entity<Professor>().HasData(
