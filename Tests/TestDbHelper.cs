@@ -9,25 +9,23 @@ public static class TestDbHelper
     public static AppDbContext CreateContext(string dbName)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(databaseName: dbName)
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()) // 🔥 BD única
             .Options;
 
         var context = new AppDbContext(options);
-        context.Database.EnsureDeleted();
         context.Database.EnsureCreated();
+
         return context;
     }
 
     public static AppDbContext CreateEmptyContext(string dbName)
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(databaseName: dbName)
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString()) // 🔥 SOLUCIÓN CLAVE
             .Options;
 
         var context = new AppDbContext(options);
-
-        context.Database.EnsureDeleted();
-        context.Database.EnsureCreated(); // 👈 importante
+        context.Database.EnsureCreated();
 
         return context;
     }
