@@ -1,7 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using UniversityGrades.Controllers;
 using UniversityGrades.DTOs;
-// sin el usuario juan
 
 namespace UniversityGrades.Tests;
 
@@ -50,10 +49,13 @@ public class StudentsControllerTests
         Assert.IsType<NotFoundResult>(result.Result);
     }
 
+    // 🔥 ESTE ES EL ÚNICO CAMBIO IMPORTANTE
     [Fact]
     public async Task Create_ValidStudent_ReturnsCreatedAtAction()
     {
-        var controller = CreateController(nameof(Create_ValidStudent_ReturnsCreatedAtAction));
+        var context = TestDbHelper.CreateEmptyContext(nameof(Create_ValidStudent_ReturnsCreatedAtAction));
+        var controller = new StudentsController(context);
+
         var dto = new StudentCreateDto
         {
             FirstName = "Nuevo",
@@ -66,6 +68,7 @@ public class StudentsControllerTests
 
         var created = Assert.IsType<CreatedAtActionResult>(result.Result);
         var student = Assert.IsType<StudentResponseDto>(created.Value);
+
         Assert.Equal("Nuevo", student.FirstName);
         Assert.Equal("Estudiante", student.LastName);
         Assert.True(student.Id > 0);
@@ -94,8 +97,10 @@ public class StudentsControllerTests
         var controller = CreateController(nameof(Update_NonExistingId_ReturnsNotFound));
         var dto = new StudentCreateDto
         {
-            FirstName = "X", LastName = "Y",
-            Email = "x@y.com", StudentCode = "X-001"
+            FirstName = "X",
+            LastName = "Y",
+            Email = "x@y.com",
+            StudentCode = "X-001"
         };
 
         var result = await controller.Update(999, dto);
@@ -144,6 +149,7 @@ public class StudentsControllerTests
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var grades = Assert.IsAssignableFrom<IEnumerable<GradeResponseDto>>(ok.Value);
         Assert.Single(grades);
+
         var grade = grades.First();
         Assert.Equal(85, grade.Score);
         Assert.Equal("Test Course", grade.CourseName);
@@ -168,6 +174,7 @@ public class StudentsControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var avg = Assert.IsType<StudentAverageDto>(ok.Value);
+
         Assert.Equal(10, avg.StudentId);
         Assert.Equal(85, avg.GeneralAverage);
         Assert.Single(avg.CourseAverages);
@@ -188,18 +195,25 @@ public class StudentsControllerTests
     public async Task GetAverage_StudentWithNoGrades_ReturnsZeroAverage()
     {
         var context = TestDbHelper.CreateEmptyContext(nameof(GetAverage_StudentWithNoGrades_ReturnsZeroAverage));
+
         context.Students.Add(new Models.Student
         {
-            Id = 20, FirstName = "Sin", LastName = "Notas",
-            Email = "sin@uni.edu", StudentCode = "TST-099"
+            Id = 20,
+            FirstName = "Sin",
+            LastName = "Notas",
+            Email = "sin@uni.edu",
+            StudentCode = "TST-099"
         });
+
         context.SaveChanges();
+
         var controller = new StudentsController(context);
 
         var result = await controller.GetAverage(20);
 
         var ok = Assert.IsType<OkObjectResult>(result.Result);
         var avg = Assert.IsType<StudentAverageDto>(ok.Value);
+
         Assert.Equal(0, avg.GeneralAverage);
         Assert.Empty(avg.CourseAverages);
     }
