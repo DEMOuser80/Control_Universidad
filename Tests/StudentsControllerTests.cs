@@ -6,9 +6,9 @@ namespace UniversityGrades.Tests;
 
 public class StudentsControllerTests
 {
-    private StudentsController CreateController(string dbName)
+    private StudentsController CreateController()
     {
-        var context = TestDbHelper.CreateEmptyContext(dbName);
+        var context = TestDbHelper.CreateEmptyContext(Guid.NewGuid().ToString()); // 🔥 BD única
         TestDbHelper.SeedMinimal(context);
         return new StudentsController(context);
     }
@@ -16,7 +16,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetAll_ReturnsAllStudents()
     {
-        var controller = CreateController(nameof(GetAll_ReturnsAllStudents));
+        var controller = CreateController();
 
         var result = await controller.GetAll();
 
@@ -28,7 +28,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetById_ExistingId_ReturnsStudent()
     {
-        var controller = CreateController(nameof(GetById_ExistingId_ReturnsStudent));
+        var controller = CreateController();
 
         var result = await controller.GetById(10);
 
@@ -42,18 +42,18 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetById_NonExistingId_ReturnsNotFound()
     {
-        var controller = CreateController(nameof(GetById_NonExistingId_ReturnsNotFound));
+        var controller = CreateController();
 
         var result = await controller.GetById(999);
 
         Assert.IsType<NotFoundResult>(result.Result);
     }
 
-    // 🔥 ESTE ES EL ÚNICO CAMBIO IMPORTANTE
+    // 🔥 TEST AISLADO (SIN SEED)
     [Fact]
     public async Task Create_ValidStudent_ReturnsCreatedAtAction()
     {
-        var context = TestDbHelper.CreateEmptyContext(nameof(Create_ValidStudent_ReturnsCreatedAtAction));
+        var context = TestDbHelper.CreateEmptyContext(Guid.NewGuid().ToString()); // 🔥 sin seed
         var controller = new StudentsController(context);
 
         var dto = new StudentCreateDto
@@ -77,7 +77,8 @@ public class StudentsControllerTests
     [Fact]
     public async Task Update_ExistingId_ReturnsNoContent()
     {
-        var controller = CreateController(nameof(Update_ExistingId_ReturnsNoContent));
+        var controller = CreateController();
+
         var dto = new StudentCreateDto
         {
             FirstName = "Actualizado",
@@ -94,7 +95,8 @@ public class StudentsControllerTests
     [Fact]
     public async Task Update_NonExistingId_ReturnsNotFound()
     {
-        var controller = CreateController(nameof(Update_NonExistingId_ReturnsNotFound));
+        var controller = CreateController();
+
         var dto = new StudentCreateDto
         {
             FirstName = "X",
@@ -111,7 +113,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task Delete_ExistingId_ReturnsNoContent()
     {
-        var controller = CreateController(nameof(Delete_ExistingId_ReturnsNoContent));
+        var controller = CreateController();
 
         var result = await controller.Delete(10);
 
@@ -121,7 +123,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task Delete_NonExistingId_ReturnsNotFound()
     {
-        var controller = CreateController(nameof(Delete_NonExistingId_ReturnsNotFound));
+        var controller = CreateController();
 
         var result = await controller.Delete(999);
 
@@ -131,7 +133,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task Delete_ThenGetById_ReturnsNotFound()
     {
-        var controller = CreateController(nameof(Delete_ThenGetById_ReturnsNotFound));
+        var controller = CreateController();
 
         await controller.Delete(10);
         var result = await controller.GetById(10);
@@ -142,7 +144,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetGrades_ExistingStudent_ReturnsGrades()
     {
-        var controller = CreateController(nameof(GetGrades_ExistingStudent_ReturnsGrades));
+        var controller = CreateController();
 
         var result = await controller.GetGrades(10);
 
@@ -158,7 +160,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetGrades_NonExistingStudent_ReturnsNotFound()
     {
-        var controller = CreateController(nameof(GetGrades_NonExistingStudent_ReturnsNotFound));
+        var controller = CreateController();
 
         var result = await controller.GetGrades(999);
 
@@ -168,7 +170,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetAverage_ExistingStudent_ReturnsCorrectAverage()
     {
-        var controller = CreateController(nameof(GetAverage_ExistingStudent_ReturnsCorrectAverage));
+        var controller = CreateController();
 
         var result = await controller.GetAverage(10);
 
@@ -184,7 +186,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetAverage_NonExistingStudent_ReturnsNotFound()
     {
-        var controller = CreateController(nameof(GetAverage_NonExistingStudent_ReturnsNotFound));
+        var controller = CreateController();
 
         var result = await controller.GetAverage(999);
 
@@ -194,7 +196,7 @@ public class StudentsControllerTests
     [Fact]
     public async Task GetAverage_StudentWithNoGrades_ReturnsZeroAverage()
     {
-        var context = TestDbHelper.CreateEmptyContext(nameof(GetAverage_StudentWithNoGrades_ReturnsZeroAverage));
+        var context = TestDbHelper.CreateEmptyContext(Guid.NewGuid().ToString());
 
         context.Students.Add(new Models.Student
         {
